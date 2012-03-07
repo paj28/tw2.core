@@ -2,7 +2,7 @@ import tw2.core as twc, testapi
 import webob as wo
 import os
 from nose.tools import raises, eq_
-from tw2.core.template import reset_engine_name_cache
+from tw2.core.templating import reset_engine_name_cache
 
 # TBD: only test engines that are installed
 engines = ['cheetah', 'kid', 'genshi', 'mako']
@@ -22,7 +22,7 @@ class TestTemplate(object):
         if engine:
             mw = twc.make_middleware(None, preferred_rendering_engines=[engine])
             testapi.request(1, mw)
-        out = twc.template.EngineManager().render(template, 'string', data)
+        out = twc.templating.EngineManager().render(template, 'string', data)
         assert(isinstance(out, unicode))
         assert out == expected, out
 
@@ -32,7 +32,7 @@ class TestTemplate(object):
         #File "/.../lib/python2.5/site-packages/nose-0.11.0-py2.5.egg/nose/case.py", line 183, in runTest
         #self.test(*self.arg)
         #File "/.../tw2core-percious/tests/test_template.py", line 22, in _check_render
-        #out = twc.template.EngineManager().render(template, 'string', data)
+        #out = twc.templating.EngineManager().render(template, 'string', data)
         #File "/.../src/tw2core-percious/tw2/core/template.py", line 44, in render
         #template = self[engine_name].load_template(template_path)
         #File "/.../lib/python2.5/site-packages/TurboKid-1.0.4-py2.5.egg/turbokid/kidsupport.py", line 151, in load_template
@@ -45,7 +45,7 @@ class TestTemplate(object):
             #set up the default renderers
             yield self._check_render, 'tw2.core.test_templates.simple', {'test':engine}, '<p>TEST %s</p>'%engine, engine
 
-    @raises(twc.template.EngineError)
+    @raises(twc.templating.EngineError)
     def test_auto_select_unavailable_engine(self):
         engine = 'mako'
         self._check_render('tw2.core.test_templates.simple_genshi', {'test':engine}, '<p>TEST %s</p>'%engine, engine)
@@ -53,7 +53,7 @@ class TestTemplate(object):
     def test_auto_select_cache_works(self):
         engine='genshi'
         args = 'tw2.core.test_templates.simple_genshi', 'string', {'test':engine}
-        em = twc.template.EngineManager()
+        em = twc.templating.EngineManager()
         out = em.render(*args)
         assert(isinstance(out, unicode))
         assert out == '<p>TEST genshi</p>', out
@@ -70,7 +70,7 @@ class TestTemplate(object):
     def test_engines(self):
         for engine in engines:
             print "Testing %s..." % engine
-            out = twc.template.EngineManager().render('%s:tw2.core.test_templates.simple_%s' % (engine, engine), 'string', {'test':'test1'})
+            out = twc.templating.EngineManager().render('%s:tw2.core.test_templates.simple_%s' % (engine, engine), 'string', {'test':'test1'})
             out = strip_prefix(kid_prefix, out)
             assert(isinstance(out, unicode))
             assert(out == '<p>TEST test1</p>')
@@ -78,12 +78,12 @@ class TestTemplate(object):
     def test_engines_unicode(self):
         for engine in engines:
             print "Testing %s..." % engine
-            out = twc.template.EngineManager().render('%s:tw2.core.test_templates.simple_%s' % (engine, engine), 'string', {'test':'test\u1234'})
+            out = twc.templating.EngineManager().render('%s:tw2.core.test_templates.simple_%s' % (engine, engine), 'string', {'test':'test\u1234'})
             out = strip_prefix(kid_prefix, out)
             assert(out == '<p>TEST test\u1234</p>')
 
     def test_engine_dupe(self):
-        em = twc.template.EngineManager()
+        em = twc.templating.EngineManager()
         t = em[engines[0]]
         try:
             em.load_engine(engines[0])
@@ -93,13 +93,13 @@ class TestTemplate(object):
 
     def test_engine_notfound(self):
         try:
-            t = twc.template.EngineManager()['fred']
+            t = twc.templating.EngineManager()['fred']
             assert(False)
         except twc.EngineError, e:
             eq_(str(e), "No template engine for 'fred'")
 
     def test_extra_vars(self):
-        eng = twc.template.EngineManager()
+        eng = twc.templating.EngineManager()
         for engine in engines[:3]: #mako is exempt
             print "Testing %s..." % engine
             eng.load_engine(engine, extra_vars_func=lambda: {'test':'wobble'})
@@ -109,7 +109,7 @@ class TestTemplate(object):
 
     def test_nesting(self):
         "Check that templates can be correctly nested, in any combination"
-        eng = twc.template.EngineManager()
+        eng = twc.templating.EngineManager()
         for outer in engines:
             for inner in engines:
                 print 'Testing %s on %s' % (inner, outer)

@@ -1,6 +1,6 @@
 import tw2.core as twc
 from tw2.core.testbase import base
-from tw2.core.template import reset_engine_name_cache
+from tw2.core.templating import reset_engine_name_cache
 
 twc.core.request_local = base.request_local_tst
 

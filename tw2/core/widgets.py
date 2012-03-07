@@ -6,7 +6,7 @@ import inspect
 import warnings
 import webob
 
-import template
+import templating
 import core
 import util
 import validation as vd
@@ -397,24 +397,25 @@ class Widget(pm.Parametered):
                 r.prepare()
         return self.generate_output(displays_on)
 
-    def generate_output(self, engine_name):
+    def generate_output(self, dst_engine_name):
         """
         Generate the actual output text for this widget.
 
         By default this renders the widget's template. Subclasses can override
         this method for purely programmatic output.
 
-        `engine_name`
+        `dst_engine_name`
             The name of the template engine this widget is being displayed
             inside.
 
         Use it like this::
 
             class MyWidget(LeafWidget):
-                def generate_output(self, engine_name):
+                def generate_output(self, dst_engine_name):
                     return "<span {0}>{1}</span>".format(self.attrs, self.text)
         """
 
+        # Inline templates are special.  Here we do exceptional process
         if self.inline_engine_name != None:
             if self.inline_engine_name != 'mako':
                 raise ValueError("Only mako is supported for inline templates")
@@ -424,13 +425,13 @@ class Widget(pm.Parametered):
                 output = output.decode('utf-8')
             return output
 
+        # If no destination engine was provided, try to determine one.
         mw = core.request_local().get('middleware')
-        if engine_name is None:
-            if self.parent is None:
-                engine_name = mw and mw.config.default_engine or 'string'
-            else:
-                engine_name = template.get_engine_name(
-                    self.parent.template, mw)
+        if dst_engine_name is None:
+            dst_engine_name = mw and mw.config.default_engine or 'string'
+            if self.parent:
+                dst_engine_name = templating.split_engine_and_template(
+                    self.parent.template)[0]
 
         v = {'w': self}
         if mw and mw.config.params_as_vars:
@@ -438,8 +439,8 @@ class Widget(pm.Parametered):
                 if hasattr(self, p):
                     v[p] = getattr(self, p)
 
-        eng = mw and mw.engines or template.engine_manager
-        return eng.render(self.template, engine_name, v)
+        eng = mw and mw.engines or templating.engine_manager
+        return eng.render(self.template, dst_engine_name, v)
 
     @classmethod
     def validate(cls, params, state=None):

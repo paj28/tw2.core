@@ -52,21 +52,22 @@ strict_template_selection to false which will grab whatever template it
 finds if there one of your preferred template engines is not found."""
 
 
-def get_engine_name(template_name, mw=None):
+def split_engine_and_template(template_name):
     global engine_name_cache
     try:
         engine_name, template_path = template_name.split(':', 1)
-        return engine_name
+        return engine_name, template_path
     except ValueError:
         pass
     try:
-        return engine_name_cache[template_name]
+        return engine_name_cache[template_name], template_name
     except KeyError:
         pass
+
+    rl = core.request_local()
+    mw = rl.get('middleware')  # May or may not be in place.
+
     try:
-        if mw is None:
-            rl = core.request_local()
-            mw = rl['middleware']
         pref_rend_eng = mw.config.preferred_rendering_engines
     except (KeyError, AttributeError):
         pref_rend_eng = ['mako', 'genshi', 'cheetah', 'kid']
@@ -74,13 +75,13 @@ def get_engine_name(template_name, mw=None):
     for engine_name in pref_rend_eng:
         if template_available(template_name, engine_name, mw):
             engine_name_cache[template_name] = engine_name
-            return engine_name
+            return engine_name, template_name
     if not mw.config.strict_engine_selection:
         pref_rend_eng = ['mako', 'genshi', 'cheetah', 'kid']
         for engine_name in pref_rend_eng:
             if template_available(template_name, engine_name):
                 engine_name_cache[template_name] = engine_name
-                return engine_name
+                return engine_name, template_name
     raise EngineError(engine_error_template % (template_name, template_name))
 
 
@@ -89,39 +90,36 @@ class EngineManager(dict):
     :class:`tw.core.TwMiddleware` instance. Users should not access
     this class directly.
     """
-    def render(self, template, displays_on, dct):
+    def render(self, template, dst_engine_name, dct):
         """Render a template (passed in the form "engine_name:template_path")
         in a suitable way for inclusion in a template of the engine specified
-        in ``displays_on``.
+        in ``dst_engine_name``.
         """
-        try:
-            engine_name, template_path = template.split(':', 1)
-        except ValueError:
-            #if the engine name is not specified, find the best possible engine
-            engine_name = get_engine_name(template)
-            template_path = template
+        src_engine_name, template_path = split_engine_and_template(template)
 
-        if engine_name == 'genshi' and '/' in template_path:
-            engine_name = 'genshi_abs'
+        if src_engine_name == 'genshi' and '/' in template_path:
+            src_engine_name = 'genshi_abs'
 
-        if engine_name not in ['string', 'cheetah']:
-            template = self[engine_name].load_template(template_path)
+        if src_engine_name not in ['string', 'cheetah']:
+            template = self[src_engine_name].load_template(template_path)
 
-        if engine_name == 'string':
+        if src_engine_name == 'string':
             template = template_path
 
         #xxx: add support for "toscawidgets" template engine
 
         adaptor_renderer = self._get_adaptor_renderer(
-            engine_name, displays_on, template
+            src_engine_name, dst_engine_name, template
         )
 
-        if engine_name == 'mako':
+        if src_engine_name == 'mako':
             output = adaptor_renderer(**dct)
         else:
             output = adaptor_renderer(template=template_path, info=dct)
+
         if isinstance(output, str):
             output = output.decode('utf-8')
+
         return output
 
     def _get_adaptor_renderer(self, src, dst, template):
@@ -132,27 +130,36 @@ class EngineManager(dict):
             return lambda **kw: string.Template(template).substitute(
                 **dict(kw['info']['w'].iteritems())
             )
+
         if src == dst and src in ('kid', 'genshi'):
             return self[src].transform
-        elif src == 'mako' and dst == 'kid':
-            from kid import XML
-            return lambda **kw: XML(template.render(**kw))
-        elif src == 'mako' and dst == 'genshi':
-            from genshi.core import Markup
-            return lambda **kw: Markup(template.render(**kw).decode('utf-8'))
-        elif src == 'mako':
-            return template.render
-        elif src == 'kid' and dst == 'genshi':
-            from genshi.input import ET
-            return lambda **kw: ET(self[src].transform(**kw))
-        elif dst == 'genshi':
-            from genshi.core import Markup
-            return lambda **kw: Markup(self[src].render(**kw))
-        elif dst == 'kid':
+
+        if src == 'mako':
+            inner = lambda **kw: template.render(**kw)
+
+            if dst == 'kid':
+                from kid import XML
+                return lambda **kw: XML(inner(**kw))
+
+            if dst == 'genshi':
+                from genshi.core import Markup
+                return lambda **kw: Markup(inner(**kw).decode('utf-8'))
+
+            return inner
+
+        if src == 'kid' and dst == 'genshi':
+          from genshi.input import ET
+          return lambda **kw: ET(self[src].transform(**kw))
+
+        if dst == 'genshi':
+          from genshi.core import Markup
+          return lambda **kw: Markup(self[src].render(**kw))
+
+        if dst == 'kid':
             from kid import XML
             return lambda **kw: XML(self[src].render(**kw))
-        else:
-            return self[src].render
+
+        return self[src].render
 
     def load_engine(self, name, options={}, extra_vars_func=None):
         if name in self:
