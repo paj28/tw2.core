@@ -148,12 +148,12 @@ class EngineManager(dict):
             return inner
 
         if src == 'kid' and dst == 'genshi':
-          from genshi.input import ET
-          return lambda **kw: ET(self[src].transform(**kw))
+            from genshi.input import ET
+            return lambda **kw: ET(self[src].transform(**kw))
 
         if dst == 'genshi':
-          from genshi.core import Markup
-          return lambda **kw: Markup(self[src].render(**kw))
+            from genshi.core import Markup
+            return lambda **kw: Markup(self[src].render(**kw))
 
         if dst == 'kid':
             from kid import XML
