@@ -28,6 +28,7 @@ def template_available(template_name, engine_name, mw=None):
         rendering_extension_lookup = {
             'mako': 'mak',
             'genshi': 'html',
+            'jinja2': 'html',
             'cheetah': 'tmpl',
             'kid': 'kid',
         }
@@ -69,14 +70,14 @@ def get_engine_name(template_name, mw=None):
             mw = rl['middleware']
         pref_rend_eng = mw.config.preferred_rendering_engines
     except (KeyError, AttributeError):
-        pref_rend_eng = ['mako', 'genshi', 'cheetah', 'kid']
+        pref_rend_eng = ['mako', 'genshi', 'jinja2', 'cheetah', 'kid']
     # find the first file in the preffered engines available for templating
     for engine_name in pref_rend_eng:
         if template_available(template_name, engine_name, mw):
             engine_name_cache[template_name] = engine_name
             return engine_name
     if not mw.config.strict_engine_selection:
-        pref_rend_eng = ['mako', 'genshi', 'cheetah', 'kid']
+        pref_rend_eng = ['mako', 'genshi', 'jinja2', 'cheetah', 'kid']
         for engine_name in pref_rend_eng:
             if template_available(template_name, engine_name):
                 engine_name_cache[template_name] = engine_name
@@ -116,7 +117,7 @@ class EngineManager(dict):
             engine_name, displays_on, template
         )
 
-        if engine_name == 'mako':
+        if engine_name in ['mako', 'jinja2',]:
             output = adaptor_renderer(**dct)
         else:
             output = adaptor_renderer(template=template_path, info=dct)
@@ -134,13 +135,13 @@ class EngineManager(dict):
             )
         if src == dst and src in ('kid', 'genshi'):
             return self[src].transform
-        elif src == 'mako' and dst == 'kid':
+        elif src in ['mako', 'jinja2'] and dst == 'kid':
             from kid import XML
             return lambda **kw: XML(template.render(**kw))
-        elif src == 'mako' and dst == 'genshi':
+        elif src in ['mako', 'jinja2'] and dst == 'genshi':
             from genshi.core import Markup
             return lambda **kw: Markup(template.render(**kw).decode('utf-8'))
-        elif src == 'mako':
+        elif src in ['mako', 'jinja2']:
             return template.render
         elif src == 'kid' and dst == 'genshi':
             from genshi.input import ET

@@ -29,6 +29,7 @@ _extra_cheetah = ["Cheetah>=1.0", "TurboCheetah>=0.9.5"]
 _extra_genshi = ["Genshi >= 0.3.5"]
 _extra_kid = ["kid>=0.9.5", "TurboKid>=0.9.9"]
 _extra_mako = ["Mako >= 0.1.1"]
+_extra_jinja = ["jinja2"]
 
 setup(
     name='tw2.core',
@@ -51,14 +52,21 @@ setup(
         'strainer',
         'yuicompressor',
         'tw2.forms',
-    ] + _extra_kid + _extra_cheetah + _extra_genshi + _extra_mako,
+    ] + sum([
+        _extra_kid,
+        _extra_cheetah,
+        _extra_genshi,
+        _extra_mako,
+        _extra_jinja,
+    ], []),
     test_suite = 'nose.collector',
     extras_require = {
         'cheetah': _extra_cheetah,
         'kid': _extra_kid,
         'genshi': _extra_genshi,
         'mako': _extra_mako,
-        },
+        'jinja2': _extra_jinja,
+    },
     url = "http://toscawidgets.org/",
     download_url = "http://toscawidgets.org/download/",
     author='Paul Johnston, Christopher Perkins, Alberto Valverde & contributors',

@@ -5,7 +5,7 @@ from nose.tools import raises, eq_
 from tw2.core.template import reset_engine_name_cache
 
 # TBD: only test engines that are installed
-engines = ['cheetah', 'kid', 'genshi', 'mako']
+engines = ['cheetah', 'kid', 'jinja2', 'genshi', 'mako']
 
 kid_prefix = """<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">\n"""
 def strip_prefix(prefix, s):
