@@ -140,15 +140,17 @@ class Link(Resource):
     @classmethod
     def post_define(cls):
 
+        if cls.modname:
+            cls._modname = cls.modname
+        else:
+            cls._modname = cls.guess_modname()
+
         if not cls.no_inject:
             if getattr(cls, 'filename', None) and \
                type(cls.filename) != property:
 
-                if not cls.modname:
-                    cls.modname = cls.guess_modname()
-
                 md.register_resource(
-                    cls.modname or '__anon__', cls.filename, cls.whole_dir
+                    cls._modname or '__anon__', cls.filename, cls.whole_dir
                 )
 
     def prepare(self):
@@ -162,7 +164,7 @@ class Link(Resource):
                     )
                 resources = rl['middleware'].resources
                 self.link = resources.resource_path(
-                    self.modname or '__anon__', self.filename
+                    self._modname or '__anon__', self.filename
                 )
             super(Link, self).prepare()
 
@@ -170,7 +172,7 @@ class Link(Resource):
         return hash(
             hasattr(self, 'link') and \
             self.link or \
-            ((self.modname or '') + self.filename)
+            ((self._modname or '') + self.filename)
         )
 
     def __eq__(self, other):
@@ -183,7 +185,7 @@ class Link(Resource):
     def __repr__(self):
         return "%s('%s')" % (
             self.__class__.__name__,
-            getattr(self, 'link', '%s/%s' % (self.modname, self.filename))
+            getattr(self, 'link', '%s/%s' % (self._modname, self.filename))
         )
 
 
@@ -195,7 +197,7 @@ class DirLink(Link):
     def prepare(self):
         resources = core.request_local()['middleware'].resources
         self.link = resources.resource_path(
-            self.modname,
+            self._modname,
             self.filename,
         )
 

@@ -231,7 +231,7 @@ class archive_tw2_resources(Command):
 
         for resource in rl_resources:
             try:
-                modname = resource.modname
+                modname = resource._modname
                 fbase = resource.filename.split('/')[0]
                 self.execute(self._copy_resource_tree, (modname, fbase),
                              "Copying %s recursively into %s" %
