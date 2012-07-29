@@ -119,7 +119,8 @@ class TestMiddleware(TestCase):
         class WidgetMock(object):
             def __init__(self):
                 self.id = "fake"
-
+            def _ancestors(self, include_partial=False):
+                return []
             def request(self, request):
                 return controller_response
 
