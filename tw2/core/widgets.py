@@ -19,6 +19,7 @@ except ImportError:
 
 reserved_names = (
     'parent',
+    'partial_parent',
     'demo_for',
     'child',
     'submit',
@@ -120,6 +121,10 @@ class Widget(pm.Parametered):
     error_msg = pm.Variable("Validation error message.")
     parent = pm.Variable(
         "The parent of this widget, or None if this is a root widget."
+    )
+    partial_parent = pm.Variable(
+        "The partial parent of this widget. This is used by some widgets " + \
+        "(e.g. Directory) where a partial parent-child relationship exists."
     )
 
     _sub_compound = False
@@ -249,21 +254,28 @@ class Widget(pm.Parametered):
                     setattr(cls, p.name, p.default)
 
     @classmethod
-    def _ancestors(cls):
+    def _ancestors(cls, include_partial=False):
         ancestors = []
         cur = cls
         while cur:
             if cur in ancestors:
                 raise core.WidgetError('Parent loop')
             ancestors.append(cur)
-            cur = cur.parent
+            next = cur.parent
+            if (not next) and include_partial:
+                next = getattr(cur, 'partial_parent', None)
+            cur = next
         return ancestors
 
     @classmethod
     def _gen_compound_id(cls, for_url):
+        ancestors = cls._ancestors()
         elems = reversed(filter(None, [
-            a._compound_id_elem(for_url) for a in cls._ancestors()
+            a._compound_id_elem(for_url) for a in ancestors
         ]))
+        if for_url and getattr(ancestors[0], 'partial_parent', None):
+            elems = list(elems)
+            elems.insert(0, ancestors[0].partial_parent._gen_compound_id(True))
         if getattr(cls, 'id', None) or \
            (cls.parent and issubclass(cls.parent, RepeatingWidget)):
             return ':'.join(elems)

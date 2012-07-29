@@ -247,7 +247,7 @@ class ControllersApp(object):
         return None
         
     def auth_check(self, widget, req):
-        for w in widget._ancestors():
+        for w in widget._ancestors(include_partial=True):
             if getattr(w, 'auth_check', None):
                 if not w.auth_check(req):
                     return False
