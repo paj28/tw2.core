@@ -94,6 +94,11 @@ class Config(object):
         A name to prepend to the url for all resource links (different from
         res_prefix, as it may be shared across and entire wsgi app.
         (default: '')
+        
+    `unauth_response`
+        The response to return if access to a controller method is not 
+        authorized.
+        (default: wo.Response(status="401 Unauthorized"))
     '''
 
     translator = lambda self, s: s
@@ -122,6 +127,7 @@ class Config(object):
         'chameleon': ['pt']
     }
     script_name = ''
+    unauth_response = wo.Response(status="401 Unauthorized")
 
     def __init__(self, **kw):
         for k, v in kw.items():
@@ -239,6 +245,13 @@ class ControllersApp(object):
                 return path
 
         return None
+        
+    def auth_check(self, widget, req):
+        for w in widget._ancestors():
+            if getattr(w, 'auth_check', None):
+                if not w.auth_check(req):
+                    return False
+        return True
 
     def __call__(self, req):
         config = rl = core.request_local()['middleware'].config
@@ -253,7 +266,11 @@ class ControllersApp(object):
         except KeyError:
             resp = wo.Response(status="404 Not Found")
         else:
-            resp = widget.request(req)
+            if not self.auth_check(widget, req):
+                resp = config.unauth_response
+            else:
+                resp = widget.request(req)
+
         return resp
 
 

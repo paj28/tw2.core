@@ -249,7 +249,7 @@ class Widget(pm.Parametered):
                     setattr(cls, p.name, p.default)
 
     @classmethod
-    def _gen_compound_id(cls, for_url):
+    def _ancestors(cls):
         ancestors = []
         cur = cls
         while cur:
@@ -257,8 +257,12 @@ class Widget(pm.Parametered):
                 raise core.WidgetError('Parent loop')
             ancestors.append(cur)
             cur = cur.parent
+        return ancestors
+
+    @classmethod
+    def _gen_compound_id(cls, for_url):
         elems = reversed(filter(None, [
-            a._compound_id_elem(for_url) for a in ancestors
+            a._compound_id_elem(for_url) for a in cls._ancestors()
         ]))
         if getattr(cls, 'id', None) or \
            (cls.parent and issubclass(cls.parent, RepeatingWidget)):
