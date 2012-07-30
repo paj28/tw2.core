@@ -126,6 +126,11 @@ class Widget(pm.Parametered):
         "The partial parent of this widget. This is used by some widgets " + \
         "(e.g. Directory) where a partial parent-child relationship exists."
     )
+    navbar = pm.Variable(
+        "Navigation bar for this widget. This is found by going to the root of " + \
+        "the widget tree, including partial_parent relationships. If the root " + \
+        "is a directory object, that is the navbar."
+    )
 
     _sub_compound = False
     _valid_id_re = re.compile(r'^[a-zA-Z][\w\-\_\.]*$')
@@ -274,8 +279,9 @@ class Widget(pm.Parametered):
             a._compound_id_elem(for_url) for a in ancestors
         ]))
         if for_url and getattr(ancestors[0], 'partial_parent', None):
-            elems = list(elems)
-            elems.insert(0, ancestors[0].partial_parent._gen_compound_id(True))
+            pparent_id = ancestors[0].partial_parent._gen_compound_id(True)
+            if pparent_id:
+                elems = [pparent_id] + list(elems)
         if getattr(cls, 'id', None) or \
            (cls.parent and issubclass(cls.parent, RepeatingWidget)):
             return ':'.join(elems)
@@ -526,6 +532,15 @@ class Widget(pm.Parametered):
     @classmethod
     def children_deep(cls):
         yield cls
+
+    @property
+    def navbar(self):
+        ancestors = self._ancestors(include_partial=True)
+        if ancestors:
+            root = ancestors[-1]
+            if issubclass(root, Directory):
+                return root
+        return None
 
 
 class LeafWidget(Widget):
@@ -1022,3 +1037,22 @@ class Page(DisplayOnlyWidget):
 
     def fetch_data(self, req):
         pass
+
+
+class Directory(Widget):
+    template = "tw2.core.templates.directory"
+    id_suffix = "directory"
+    
+    @classmethod
+    def post_define(cls):
+        """
+        Check children are valid; update them to have a partial link to the parent.
+        """
+        if not hasattr(cls, 'children'):
+            return
+        joined_cld = []
+        for c in cls.children:
+            if not isinstance(c, type) or not issubclass(c, Page):
+                raise pm.ParameterError("All children must be Page widgets")
+            joined_cld.append(c(partial_parent=cls))
+        cls.children = WidgetBunch(joined_cld)

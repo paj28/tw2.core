@@ -1,0 +1,3 @@
+<div xmlns:py="http://genshi.edgewall.org/" py:attrs="w.attrs">
+    <a py:for="c in w.children" href="${c._gen_compound_id(for_url=True)}">$c.title</a>
+</div>

@@ -7,7 +7,7 @@ from params import (Param, ChildParam, Variable, ChildVariable, Required,
     Deferred, ParameterError, Auto)
 
 from widgets import (Widget, CompoundWidget, RepeatingWidget,
-    DisplayOnlyWidget, Page)
+    DisplayOnlyWidget, Page, Directory)
 
 from resources import (
     JSSymbol,
