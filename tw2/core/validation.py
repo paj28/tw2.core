@@ -538,11 +538,14 @@ class MatchValidator(Validator):
 
     @property
     def other_field_str(self):
-        return string.capitalize(util.name2label(self.other_field).lower())
+        return util.name2label(self.other_field).lower()
 
     def validate_python(self, value, state):
         super(MatchValidator, self).validate_python(value, state)
-        if value != state.get(self.other_field):
+        other = state.get(self.other_field)
+        if other is Invalid:
+            return
+        if value != other:
             raise ValidationError('mismatch', self)
 
 
