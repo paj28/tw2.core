@@ -1013,6 +1013,7 @@ class Page(DisplayOnlyWidget):
         default=pm.Deferred(default_content_type),
         request_local=False,
     )
+    user = pm.Variable('Currently logged-in user, if tw2.auth is active')
     template = "tw2.core.templates.page"
     id_suffix = 'page'
     _no_autoid = True
@@ -1026,6 +1027,7 @@ class Page(DisplayOnlyWidget):
             cls.id = cls.__name__.lower()
             DisplayOnlyWidget.post_define.im_func(cls)
             Widget.post_define.im_func(cls)
+
 
     @classmethod
     def request(cls, req):
@@ -1042,6 +1044,16 @@ class Page(DisplayOnlyWidget):
 
     def fetch_data(self, req):
         pass
+        
+    @property
+    def user(self):
+        global twa
+        if 'twa' not in globals():        
+            try:
+                import tw2.auth as twa
+            except ImportError:
+                twa = None
+        return twa and twa.get_user()
 
 
 class Directory(Widget):

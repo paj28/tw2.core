@@ -1,4 +1,10 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"> 
 <html>
   <head><title>${w.title}</title></head>
-  <body><h1>${w.title}</h1>${w.child and w.child.display()}</body>
+  <body>
+    ${w.navbar and w.navbar.display()}
+    ${w.user and "[Logged in as: %s]" % w.user}
+    <h1>${w.title}</h1>
+    ${w.child and w.child.display()}
+  </body>
 </html>

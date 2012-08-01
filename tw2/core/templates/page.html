@@ -1,4 +1,10 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"> 
 <html xmlns:py="http://genshi.edgewall.org/">
 <head><title>$w.title</title></head>
-<body py:attrs="w.attrs"><h1>$w.title</h1>${w.child and w.child.display()}</body>
+<body py:attrs="w.attrs">
+${w.navbar and w.navbar.display()}
+<py:if test="w.user">[Logged in as: $w.user]</py:if>
+<h1>$w.title</h1>
+${w.child and w.child.display()}
+</body>
 </html>
