@@ -542,7 +542,7 @@ class MatchValidator(Validator):
 
     def validate_python(self, value, state):
         super(MatchValidator, self).validate_python(value, state)
-        if value != state[self.other_field]:
+        if value != state.get(self.other_field):
             raise ValidationError('mismatch', self)
 
 
