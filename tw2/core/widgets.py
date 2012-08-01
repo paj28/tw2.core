@@ -1059,6 +1059,8 @@ class Page(DisplayOnlyWidget):
 class Directory(Widget):
     template = "tw2.core.templates.directory"
     id_suffix = "directory"
+    css_class = "navbar"
+    skip_navbar = pm.ChildParam("Exclude this widget from navigation bar?", default=False)
     
     @classmethod
     def post_define(cls):
