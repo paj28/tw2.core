@@ -1000,6 +1000,8 @@ def default_content_type():
     )
 
 
+legacy_pageid = True
+
 class Page(DisplayOnlyWidget):
     """
     An HTML page. This widget includes a :meth:`request` method that serves
@@ -1017,7 +1019,10 @@ class Page(DisplayOnlyWidget):
 
     @classmethod
     def post_define(cls):
-        if not getattr(cls, 'id', None) and '_no_autoid' not in cls.__dict__:
+        if legacy_pageid and not getattr(cls, 'id', None) and '_no_autoid' not in cls.__dict__:
+            warnings.warn("Standalone Page widget is taking id from class name. " +
+                "This behaviour will change in the future. Instead, use a Page " +
+                "widget inside a Directory widget", DeprecationWarning, stacklevel=2)
             cls.id = cls.__name__.lower()
             DisplayOnlyWidget.post_define.im_func(cls)
             Widget.post_define.im_func(cls)
