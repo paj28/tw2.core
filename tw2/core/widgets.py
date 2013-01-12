@@ -953,7 +953,7 @@ class DisplayOnlyWidget(Widget):
             return None
         if not for_url and getattr(cls, 'id_suffix', None):
             elems.append(cls.id_suffix)
-        return (':' if not for_url else '$').join(elems)
+        return (':' if not for_url else '_').join(elems)
 
     @classmethod
     def _compound_id_elem(cls, for_url):
