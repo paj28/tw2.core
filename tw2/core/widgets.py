@@ -283,7 +283,7 @@ class Widget(pm.Parametered):
                 elems = [pparent_id] + list(elems)
         if getattr(cls, 'id', None) or \
            (cls.parent and issubclass(cls.parent, RepeatingWidget)):
-            return (':' if not for_url else '$').join(elems)
+            return (':' if not for_url else '_').join(elems)
         else:
             return None
 
