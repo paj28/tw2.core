@@ -29,7 +29,6 @@ reserved_names = (
 )
 _widget_seq = itertools.count(0)
 
-
 class WidgetMeta(pm.ParamMeta):
     """
     This metaclass:
@@ -284,7 +283,7 @@ class Widget(pm.Parametered):
                 elems = [pparent_id] + list(elems)
         if getattr(cls, 'id', None) or \
            (cls.parent and issubclass(cls.parent, RepeatingWidget)):
-            return ':'.join(elems)
+            return (':' if not for_url else '$').join(elems)
         else:
             return None
 
@@ -537,10 +536,8 @@ class Widget(pm.Parametered):
     def navbar(self):
         ancestors = self._ancestors(include_partial=True)
         if ancestors:
-            root = ancestors[-1]
-            if issubclass(root, Directory):
-                return root
-        return None
+            return [w for w in reversed(ancestors) if issubclass(w, Directory)]
+        return []
 
 
 class LeafWidget(Widget):
@@ -956,7 +953,7 @@ class DisplayOnlyWidget(Widget):
             return None
         if not for_url and getattr(cls, 'id_suffix', None):
             elems.append(cls.id_suffix)
-        return ':'.join(elems)
+        return (':' if not for_url else '$').join(elems)
 
     @classmethod
     def _compound_id_elem(cls, for_url):
@@ -1071,7 +1068,12 @@ class Directory(Widget):
             return
         joined_cld = []
         for c in cls.children:
-            if not isinstance(c, type) or not issubclass(c, Page):
-                raise pm.ParameterError("All children must be Page widgets")
+            if not isinstance(c, type) or (not issubclass(c, Page) and not issubclass(c, Directory)):
+                raise pm.ParameterError("All children must be Page or Directory widgets")
             joined_cld.append(c(partial_parent=cls))
         cls.children = WidgetBunch(joined_cld)
+
+
+    @classmethod
+    def request(cls, req):
+        return cls.children.__getattr__('index').request(req)
