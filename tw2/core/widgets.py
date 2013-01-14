@@ -1058,6 +1058,7 @@ class Directory(Widget):
     id_suffix = "directory"
     css_class = "navbar"
     skip_navbar = pm.ChildParam("Exclude this widget from navigation bar?", default=False)
+    active = pm.Param("The active page")
     
     @classmethod
     def post_define(cls):
