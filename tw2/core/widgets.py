@@ -537,9 +537,9 @@ class Widget(pm.Parametered):
         else:
             try:
                 cld = cls.children.__getattr__(parts[0])
-                return cld.proc_url(req, parts[1:])
             except AttributeError:
                 return webob.Response(status="404 Not Found")
+            return cld.proc_url(req, parts[1:])
 
 
 class LeafWidget(Widget):
