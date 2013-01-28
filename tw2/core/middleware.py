@@ -41,9 +41,10 @@ class Config(object):
         The maximum time a cache can hold the resource. This is used to
         generate a Cache-control header. (default: 3600)
 
-    `serve_controllers`
-        Whether to serve controller methods on widgets. (default: True)
-
+    `root_controller`
+        The root widget, that will be rendered when the root URL is accessed.
+        (default: None)
+    
     `controller_prefix`
         The prefix under which controllers are served. This must start
         and end with a slash. (default: /controllers/)
@@ -108,7 +109,6 @@ class Config(object):
     serve_resources = True
     res_prefix = '/resources/'
     res_max_age = 3600
-    serve_controllers = True
     controller_prefix = '/controllers/'
     bufsize = 4 * 1024
     params_as_vars = False
@@ -128,6 +128,7 @@ class Config(object):
     }
     script_name = ''
     unauth_response = wo.Response(status="401 Unauthorized")
+    root_controller = None
 
     def __init__(self, **kw):
         for k, v in kw.items():
@@ -137,7 +138,6 @@ class Config(object):
         boolean_props = (
             'inject_resources',
             'serve_resources',
-            'serve_controllers',
             'params_as_vars',
             'strict_engine_selection',
             'debug',
@@ -167,14 +167,8 @@ class TwMiddleware(object):
         self.app = app
         self.config = Config(**config)
         self.resources = resources.ResourcesApp(self.config)
-        self.controllers = controllers or ControllersApp()
 
         rl = core.request_local()
-        # Load up controllers that wanted to be registered before we were ready
-        for widget, path in rl.get('queued_controllers', []):
-            self.controllers.register(widget, path)
-
-        rl['queued_controllers'] = []
 
         # Load up resources that wanted to be registered before we were ready
         for modname, filename, whole_dir in rl.get('queued_resources', []):
@@ -193,9 +187,10 @@ class TwMiddleware(object):
            path.startswith(self.config.res_prefix):
             return self.resources(environ, start_response)
         else:
-            if self.config.serve_controllers and \
-               path.startswith(self.config.controller_prefix):
-                resp = self.controllers(req)
+            if path.startswith(self.config.controller_prefix) and self.config.root_controller:
+                path = req.path_info[len(self.config.controller_prefix):]
+                parts = path and path.split('_')
+                resp = self.config.root_controller.proc_url(req, parts)
             else:
                 if self.app:
                     resp = req.get_response(self.app, catch_exc_info=True)
@@ -220,58 +215,6 @@ class TwMiddleware(object):
                     resp.body = body
         core.request_local().clear()
         return resp(environ, start_response)
-
-
-class ControllersApp(object):
-    """
-    """
-
-    def __init__(self):
-        self._widgets = {}
-
-    def register(self, widget, path=None):
-        log.info("Registered controller %r->%r" % (path, widget))
-        if path is None:
-            path = widget.id
-        self._widgets[path] = widget
-
-    def controller_path(self, target_widget):
-        """ Return the path against which a given widget is mounted or None if
-        it is not registered.
-        """
-
-        for path, widget in self._widgets.iteritems():
-            if target_widget == widget:
-                return path
-
-        return None
-        
-    def auth_check(self, widget, req):
-        for w in reversed(widget._ancestors(include_partial=True)):
-            if getattr(w, 'auth_check', None):
-                if not w.auth_check(req):
-                    return False
-        return True
-
-    def __call__(self, req):
-        config = rl = core.request_local()['middleware'].config
-        path = req.path_info.split('/')[1:]
-        pre = config.controller_prefix.strip('/')
-        if pre and path[0] != pre:
-            return wo.Response(status="404 Not Found")
-        path = path[1] if pre else path[0]
-        widget_name = path or 'index'
-        try:
-            widget = self._widgets[widget_name]
-        except KeyError:
-            resp = wo.Response(status="404 Not Found")
-        else:
-            if not self.auth_check(widget, req):
-                resp = config.unauth_response
-            else:
-                resp = widget.request(req)
-
-        return resp
 
 
 def register_resource(modname, filename, whole_dir):
@@ -299,28 +242,6 @@ def register_resource(modname, filename, whole_dir):
         ]
         log.debug("No middleware in place.  Queued %r->%r(%r) registration." %
                   (modname, filename, whole_dir))
-
-
-def register_controller(widget, path):
-    """ API function for registering widget controllers.
-
-    If the middleware is available, the widget is directly registered with the
-    ControllersApp.
-
-    If the middleware is not available, the widget is stored in the
-    request_local dict.  When the middleware is later initialized, those
-    waiting registrations are processed.
-    """
-
-    rl = core.request_local()
-    mw = rl.get('middleware')
-    if mw:
-        mw.controllers.register(widget, path)
-    else:
-        rl['queued_controllers'] = \
-                rl.get('queued_controllers', []) + [(widget, path)]
-        log.debug("No middleware in place.  Queued %r->%r registration." %
-                  (path, widget))
 
 
 def make_middleware(app=None, config=None, **kw):

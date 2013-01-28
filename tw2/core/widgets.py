@@ -218,11 +218,6 @@ class Widget(pm.Parametered):
             cls.attrs = cls.attrs.copy()
             cls.attrs['id'] = cls.compound_id
 
-        if hasattr(cls, 'request') and getattr(cls, 'id', None):
-            import middleware
-            path = cls._gen_compound_id(for_url=True)
-            middleware.register_controller(cls, path)
-
         if cls.validator:
             if cls.validator is pm.Required:
                 vld = cls.__mro__[1].validator
@@ -369,15 +364,6 @@ class Widget(pm.Parametered):
         for param in self._params.keys():
             value = getattr(self, param)
             yield param, value
-
-    @util.class_or_instance
-    def controller_path(self, cls):
-        """ Return the URL path against which this widget's controller is
-        mounted or None if it is not registered with the ControllerApp.
-        """
-
-        mw = core.request_local().get('middleware')
-        return mw.controllers.controller_path(cls)
 
     @util.class_or_instance
     def add_call(self, extra_arg, call, location="bodybottom"):
@@ -538,6 +524,22 @@ class Widget(pm.Parametered):
         if ancestors:
             return [w for w in reversed(ancestors) if issubclass(w, Directory)]
         return []
+
+    @classmethod
+    def proc_url(cls, req, parts):
+        if hasattr(cls, 'auth_check') and not cls.auth_check(req):
+            return core.request_local()['middleware'].config.unauth_response
+        if not parts:
+            if hasattr(cls, 'request'):
+                return cls.request(req)
+            else:
+                return webob.Response(status="404 Not Found")
+        else:
+            try:
+                cld = cls.children.__getattr__(parts[0])
+                return cld.proc_url(req, parts[1:])
+            except AttributeError:
+                return webob.Response(status="404 Not Found")
 
 
 class LeafWidget(Widget):
@@ -1074,7 +1076,8 @@ class Directory(Widget):
             joined_cld.append(c(partial_parent=cls))
         cls.children = WidgetBunch(joined_cld)
 
-
     @classmethod
-    def request(cls, req):
-        return cls.children.__getattr__('index').request(req)
+    def proc_url(cls, req, parts):
+        if not parts:
+            parts = ['index']
+        return Widget.proc_url.im_func(cls, req, parts)

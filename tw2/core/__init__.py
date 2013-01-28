@@ -34,7 +34,6 @@ from validation import (
 from middleware import (
     make_middleware,
     dev_server,
-    register_controller,
     register_resource,
 )
 
