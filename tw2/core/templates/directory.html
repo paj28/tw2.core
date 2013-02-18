@@ -1,5 +1,5 @@
 <div xmlns:py="http://genshi.edgewall.org/" py:attrs="w.attrs">
     <py:for each="c in w.children">
-        <a py:if="hasattr(c, 'title') and not getattr(c, 'skip_navbar', False)" href="${c._gen_compound_id(for_url=True)}" class="${'curpage' if w.active._gen_compound_id(for_url=True).startswith(c._gen_compound_id(for_url=True)) else ''}">$c.title</a>
+        <a py:if="hasattr(c, 'title') and not getattr(c, 'skip_navbar', False) and ((not hasattr(c, 'auth_check')) or c.auth_check(None))" href="${c._gen_compound_id(for_url=True)}" class="${'curpage' if w.active._gen_compound_id(for_url=True).startswith(c._gen_compound_id(for_url=True)) else ''}">$c.title</a>
     </py:for>
 </div>
