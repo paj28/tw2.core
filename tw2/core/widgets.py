@@ -26,6 +26,7 @@ reserved_names = (
     'datasrc',
     'newlink',
     'edit',
+    'search',
 )
 _widget_seq = itertools.count(0)
 
