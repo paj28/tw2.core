@@ -27,7 +27,7 @@ from validation import (
     UrlValidator, IpAddressValidator, StringLengthValidator,
     ListLengthValidator, RangeValidator, MatchValidator,
     BoolValidator, BlankValidator, safe_validate, EmptyField,
-    CompoundValidator,
+    CompoundValidator, FloatValidator,
     Any, All,
 )
 

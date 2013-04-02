@@ -338,6 +338,26 @@ class IntValidator(RangeValidator):
             return str(value)
 
 
+class FloatValidator(IntValidator):
+    """
+    Confirm the value is a number. This is derived from
+    :class:`RangeValidator` so `min` and `max` can be specified.
+    """
+    msgs = {
+        'notfloat': _('Must be a number'),
+    }
+
+    def to_python(self, value, state=None):
+        value = super(IntValidator, self).to_python(value, state)
+        try:
+            if value is None or str(value) == '':
+                return None
+            else:
+                return float(value)
+        except ValueError:
+            raise ValidationError('notfloat', self)
+
+
 class BoolValidator(RangeValidator):
     """
     Convert a value to a boolean. This is particularly intended to handle
