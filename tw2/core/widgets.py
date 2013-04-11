@@ -618,18 +618,24 @@ class CompoundWidget(Widget):
         super(CompoundWidget, self).prepare()
         v = self.value or {}
         if not hasattr(self, '_validated'):
-            if hasattr(v, '__getitem__'):
-                for c in self.children:
-                    if c._sub_compound:
-                        c.value = v
-                    elif c.key in v:
-                        c.value = v[c.key]
-            else:
-                for c in self.children:
-                    if c._sub_compound:
-                        c.value = self.value
+            for c in self.children:
+                if c._sub_compound:
+                    c.value = v
+                else:
+                    cv = v
+                    for k in (c.key or '').split('.'):
+                        if hasattr(cv, '__getitem__'):
+                            if k in cv:
+                                cv = cv[k]
+                            else:
+                                break
+                        else:
+                            if hasattr(cv, k):
+                                cv = getattr(cv, k)
+                            else:
+                                break
                     else:
-                        c.value = getattr(self.value, c.key or '', None)
+                        c.value = cv
         for c in self.children:
             c.prepare()
 
@@ -671,17 +677,23 @@ class CompoundWidget(Widget):
                     c.error_msg = e.msg
                 any_errors = True
 
+        def put_key(data, key, val):
+            ks = key.split('.')
+            for k in ks[:-1]:
+                data = data.setdefault(k, {})
+            data[ks[-1]] = val
+
         #Validate non compound children
         for c in (child for child in self.children if not child._sub_compound):
-            d = value.get(c.key, '')
+            d = value.get(c.id, '') # TBD: name instead?
             try:
                 val = c._validate(d, data)
                 if val is not vd.EmptyField:
-                    data[c.key] = val
+                    put_key(data, c.key, val)
             except catch, e:
                 if hasattr(e, 'msg'):
                     c.error_msg = e.msg
-                data[c.key] = vd.Invalid
+                put_key(data, c.key, vd.Invalid)
                 any_errors = True
 
         # Validate self, usually a CompoundValidator or a FormEncode form-level
