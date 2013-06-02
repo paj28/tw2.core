@@ -1056,7 +1056,7 @@ class Page(DisplayOnlyWidget):
 
     def fetch_data(self, req):
         pass
-        
+    
     @property
     def user(self):
         global twa
@@ -1094,3 +1094,7 @@ class Directory(Widget):
         if not parts:
             parts = ['index']
         return Widget.proc_url.im_func(cls, req, parts)
+
+    def prepare(self):
+        self.css_class += ' navlevel' + str(len(self._ancestors(include_partial=True)))
+        super(Directory, self).prepare()
